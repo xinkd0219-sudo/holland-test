@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>霍兰德职业兴趣测试</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    margin: 0; padding: 0;
+    background: #fff0f5;
+    color: #333;
+  }
+  h1 {
+    text-align: center;
+    color: #ff4b3e;
+    padding: 20px 0;
+  }
+  .question {
+    background: #ffffff;
+    margin: 15px auto;
+    padding: 15px 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    max-width: 600px;
+  }
+  .options label {
+    margin-right: 10px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button {
+    display: block;
+    margin: 20px auto;
+    background: linear-gradient(90deg, #ff7e5f, #ff4b3e);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 25px;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  }
+  button:hover {
+    opacity: 0.9;
+  }
+  #result {
+    max-width: 600px;
+    margin: 30px auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+  canvas {
+    display: block;
+    max-width: 400px;
+    margin: 20px auto;
+  }
+</style>
+</head>
+<body>
+
+<h1>霍兰德职业兴趣测试</h1>
+<form id="testForm"></form>
+<button onclick="submitTest()">提交测试结果</button>
+
+<div id="result"></div>
+<canvas id="pieChart"></canvas>
+
+<script>
+// 题库（50题保持原样）
+const questions = [
+  {type:'R', text:'我喜欢修理家具或家电。'}, {type:'R', text:'我喜欢搭建或组装东西。'},
+  {type:'R', text:'我喜欢户外劳动或运动。'}, {type:'R', text:'我喜欢操作机械或工具。'},
+  {type:'R', text:'我喜欢实践技能活动。'}, {type:'R', text:'我喜欢动手解决问题。'},
+  {type:'R', text:'我喜欢使用各种工具。'}, {type:'R', text:'我喜欢参与工程或建筑相关活动。'},
+  {type:'R', text:'我喜欢修理或维护设备。'}, {type:'R', text:'我喜欢从事手工或技艺工作。'},
+  {type:'I', text:'我喜欢解决复杂的数学或逻辑问题。'}, {type:'I', text:'我喜欢研究科学或技术问题。'},
+  {type:'I', text:'我喜欢思考抽象概念。'}, {type:'I', text:'我喜欢分析数据或资料。'},
+  {type:'I', text:'我喜欢实验和探索新事物。'}, {type:'I', text:'我喜欢阅读和理解理论知识。'},
+  {type:'I', text:'我喜欢独立思考问题。'}, {type:'I', text:'我喜欢制定研究计划。'},
+  {type:'I', text:'我喜欢发现规律或模式。'}, {type:'I', text:'我喜欢探讨专业知识和技术。'},
+  {type:'A', text:'我喜欢画画、设计或创作。'}, {type:'A', text:'我喜欢写作或表达情感。'},
+  {type:'A', text:'我喜欢参加表演或音乐活动。'}, {type:'A', text:'我喜欢创造性地解决问题。'},
+  {type:'A', text:'我喜欢摄影或影像创作。'}, {type:'A', text:'我喜欢尝试新颖和独特的表达方式。'},
+  {type:'A', text:'我喜欢艺术和文化活动。'}, {type:'A', text:'我喜欢设计服装、产品或场景。'},
+  {type:'A', text:'我喜欢做手工艺或DIY创作。'}, {type:'A', text:'我喜欢自由表达自己的想法。'},
+  {type:'S', text:'我喜欢帮助别人解决问题。'}, {type:'S', text:'我喜欢与人交流或辅导他人。'},
+  {type:'S', text:'我喜欢参与志愿或公益活动。'}, {type:'S', text:'我喜欢倾听和理解他人感受。'},
+  {type:'S', text:'我喜欢协助团队成员完成任务。'}, {type:'S', text:'我喜欢关心他人的需求。'},
+  {type:'S', text:'我喜欢与人合作完成目标。'}, {type:'S', text:'我喜欢教育或培训他人。'},
+  {type:'S', text:'我喜欢在人际互动中获得满足。'}, {type:'S', text:'我喜欢提供建议和指导。'},
+  {type:'E', text:'我喜欢领导或组织团队活动。'}, {type:'E', text:'我喜欢制定计划并让别人执行。'},
+  {type:'E', text:'我喜欢影响他人的决策。'}, {type:'E', text:'我喜欢参与商业或管理活动。'},
+  {type:'E', text:'我喜欢组织和安排资源。'}, {type:'E', text:'我喜欢承担责任和权威角色。'},
+  {type:'E', text:'我喜欢推动项目取得成果。'}, {type:'E', text:'我喜欢指导和管理团队。'},
+  {type:'E', text:'我喜欢在团队中发挥领导作用。'}, {type:'E', text:'我喜欢制定策略和目标。'},
+  {type:'C', text:'我喜欢整理文件、数据或资料。'}, {type:'C', text:'我喜欢按步骤完成任务。'},
+  {type:'C', text:'我喜欢遵循规则或制度。'}, {type:'C', text:'我喜欢计划和安排日常事务。'},
+  {type:'C', text:'我喜欢确保工作准确无误。'}, {type:'C', text:'我喜欢做清单和记录。'},
+  {type:'C', text:'我喜欢组织和分类信息。'}, {type:'C', text:'我喜欢管理文档和资料。'},
+  {type:'C', text:'我喜欢有序和稳定的工作环境。'}, {type:'C', text:'我喜欢遵循既定流程完成任务。'}
+];
+
+// 渲染题目卡片
+const form = document.getElementById('testForm');
+questions.forEach((q, idx)=>{
+  const div = document.createElement('div');
+  div.className = 'question';
+  div.innerHTML = `<p>${idx+1}. ${q.text}</p>
+    <div class="options">
+      <label><input type="radio" name="q${idx}" value="1" required>1</label>
+      <label><input type="radio" name="q${idx}" value="2">2</label>
+      <label><input type="radio" name="q${idx}" value="3">3</label>
+      <label><input type="radio" name="q${idx}" value="4">4</label>
+      <label><input type="radio" name="q${idx}" value="5">5</label>
+    </div>`;
+  form.appendChild(div);
+});
+
+// 提交计算
+function submitTest(){
+  const answers = [];
+  for(let i=0;i<questions.length;i++){
+    const selected = document.querySelector(`input[name="q${i}"]:checked`);
+    if(!selected){
+      alert('请完成所有题目');
+      return;
+    }
+    answers.push(selected.value);
+  }
+
+  const scores = {R:0,I:0,A:0,S:0,E:0,C:0};
+  answers.forEach((ans, idx)=>{
+    scores[questions[idx].type] += parseInt(ans);
+  });
+
+  const totalPerType = 10*5;
+  const percentages = {};
+  for(let key in scores){
+    percentages[key] = ((scores[key]/totalPerType)*100).toFixed(1);
+  }
+
+  // 分析文本
+  const analysis = `
+<h2>测试结果</h2>
+<ul>
+<li>现实型(R): ${percentages.R}%</li>
+<li>研究型(I): ${percentages.I}%</li>
+<li>艺术型(A): ${percentages.A}%</li>
+<li>社会型(S): ${percentages.S}%</li>
+<li>企业型(E): ${percentages.E}%</li>
+<li>常规型(C): ${percentages.C}%</li>
+</ul>
+<p>分析：你的测试结果显示，你在社会型（S）和现实型（R）方面兴趣较高，说明你喜欢实际操作和帮助他人，同时在研究型（I）和常规型（C）上有一定兴趣，说明你也具备逻辑分析和整理能力。艺术型（A）和企业型（E）相对较低，可能你对创造性表达和领导管理兴趣不大。整体来看，你是一个喜欢实践、与人互动且有条理性的人，适合在具体任务和服务型工作中获得成就感。</p>
+<p>职业建议：根据你的兴趣类型，你适合从事教师、护理人员、社会工作者、康复治疗师、工艺技师、实验室助理、社区服务管理等职业。这些岗位既能发挥你的动手能力，又能满足你帮助他人的兴趣，同时工作环境相对稳定，有条理，有机会与他人合作。</p>
+`;
+
+  document.getElementById('result').innerHTML = analysis;
+
+  // 绘制饼图
+  const ctx = document.getElementById('pieChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: ['R现实','I研究','A艺术','S社会','E企业','C常规'],
+      datasets: [{
+        data: [percentages.R, percentages.I, percentages.A, percentages.S, percentages.E, percentages.C],
+        backgroundColor: ['#FF6384','#36A2EB','#FFCE56','#FF6FC1','#9966FF','#FF9F40']
+      }]
+    },
+    options: { responsive: true }
+  });
+
+  window.scrollTo(0,document.body.scrollHeight);
+}
+</script>
+</body>
+</html>
